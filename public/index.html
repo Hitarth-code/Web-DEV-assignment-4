@@ -1,0 +1,169 @@
+<!-- public/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Connect - Real-Time Chat</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+        .chat-container {
+            width: 450px;
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h2 {
+            margin-top: 0;
+            color: #333;
+            text-align: center;
+        }
+        .input-group {
+            margin-bottom: 12px;
+        }
+        .input-group label {
+            display: block;
+            font-size: 13px;
+            margin-bottom: 4px;
+            color: #666;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 8px 10px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #chat-section {
+            display: none;
+            margin-top: 15px;
+        }
+        #messagesList {
+            list-style-type: none;
+            padding: 0;
+            height: 220px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            background: #fafafa;
+            margin-bottom: 10px;
+        }
+        #messagesList li {
+            padding: 6px 8px;
+            margin-bottom: 6px;
+            background: #e9ecef;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+        .send-box {
+            display: flex;
+            gap: 8px;
+        }
+        .send-box button {
+            width: 80px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="chat-container">
+    <h2>Secure Chat Platform</h2>
+
+    <div id="join-section">
+        <div class="input-group">
+            <label for="usernameInput">Username</label>
+            <input type="text" id="usernameInput" placeholder="Enter your name">
+        </div>
+        <div class="input-group">
+            <label for="roomInput">Room</label>
+            <input type="text" id="roomInput" value="general">
+        </div>
+        <button id="joinButton">Join Room</button>
+    </div>
+
+    <div id="chat-section">
+        <h4 id="roomHeading" style="margin: 0 0 10px 0; color: #555;"></h4>
+        <ul id="messagesList"></ul>
+        <div class="send-box">
+            <input type="text" id="messageInput" placeholder="Type a message...">
+            <button id="sendButton">Send</button>
+        </div>
+    </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+    const socket = io();
+
+    const joinSection = document.getElementById('join-section');
+    const chatSection = document.getElementById('chat-section');
+    const usernameInput = document.getElementById('usernameInput');
+    const roomInput = document.getElementById('roomInput');
+    const joinButton = document.getElementById('joinButton');
+    const roomHeading = document.getElementById('roomHeading');
+    const messageInput = document.getElementById('messageInput');
+    const sendButton = document.getElementById('sendButton');
+    const messagesList = document.getElementById('messagesList');
+
+    let currentUser = '';
+    let currentRoom = 'general';
+
+    joinButton.addEventListener('click', () => {
+        currentUser = usernameInput.value.trim() || 'Anonymous';
+        currentRoom = roomInput.value.trim() || 'general';
+
+        socket.emit('join_room', currentRoom);
+
+        joinSection.style.display = 'none';
+        chatSection.style.display = 'block';
+        roomHeading.textContent = 'Room: ' + currentRoom + ' (Logged in as ' + currentUser + ')';
+    });
+
+    sendButton.addEventListener('click', sendMessage);
+    messageInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') sendMessage();
+    });
+
+    function sendMessage() {
+        const text = messageInput.value.trim();
+        if (text) {
+            socket.emit('send_message', {
+                room: currentRoom,
+                user: currentUser,
+                message: text
+            });
+            messageInput.value = '';
+        }
+    }
+
+    socket.on('receive_message', (data) => {
+        const li = document.createElement('li');
+        li.textContent = '[' + data.room + '] ' + data.user + ': ' + data.message;
+        messagesList.appendChild(li);
+        messagesList.scrollTop = messagesList.scrollHeight;
+    });
+</script>
+</body>
+</html>
